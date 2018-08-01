@@ -1,0 +1,314 @@
+---
+title: "08-RR-BAAS-PlayWorkRhetoric"
+author: "Anoff Nicholas Cobblah"
+date: "July 31, 2018"
+output: html_document
+  html_document:
+    number_sections: yes
+    toc: true
+    toc_depth: 6
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+##### December 2017: "play", "player", "recreation", "work", "worker", and "labor" in the *Reports of the BAAS*
+This script combines my Word Flagging and KWIC (tokenizer script) methods in order to create an interactive illustration of the frequency with which the terms "play", "player", "recreation", "work", "worker", and "labor" were referenced in the *Reports* of the BAAS. The goal is to determine whether references to work make up a larger proportion of the *Reports* at the end of the century than at the beginning, and to visualize this in such a way that scrolling over a point automatically produces a key words in context (randomly).
+
+First, we set our parameters. There are several new things to take into account. Firstly, it is helpful to have three types of conlength values for Key Words in Context. Since the goal is to create a plot which allows KWIC to appear on rollover, 250 words is a bit much. So we have three conlengths of 250, 10, and 3 words.
+
+**It's also important to note that since the creation of the KWIC script takes a long time, I've included a logical switch to make sure it will only create a new dataset if the "raw" data is changed. That is, my txt versions of the *Reports* up to 1900 take up 210370764 bytes. So the script is set not to run unless it senses a change in the number of bytes, or if the last created dataset is missing.**
+
+```{r DecBAASApp Parameters, eval=FALSE}
+    BAASlocation <- paste0(getwd(),"/Applications/Victorian-Professional-Science-Writing/Reports-of-the-BAAS")
+    BAASdoclocation <- paste0(BAASlocation,"/Documents")
+    BAASlongconlength <- 250
+    BAASshortconlength <- 3
+    BAASPOSconlength <- 10
+    BAASplaysearchedtermlist <- c("play", "player", "recreation")
+    BAASworksearchedtermlist <- c("work", "worker","labor")
+    BAASsearchedtermlist <- c(BAASplaysearchedtermlist,BAASworksearchedtermlist)
+    BAASoutputlocation <- BAASlocation
+    BAASWordFlagdfPath <- paste0(BAASoutputlocation,"/","BAASWordFlagdf.txt")
+    BAASDocumentSize <- 210370764
+```
+
+To create the data frame compiling every reference to a term, or to upload the last version of that dataset, run the following script. Note that because this takes takes a long time to run, the dataset is always saved and called back up if possible.
+
+```{r DecBAASApp Word Flag, eval=FALSE}
+      if(sum(file.info(list.files(BAASdoclocation, all.files = TRUE, recursive = TRUE, full.names=TRUE))$size) == BAASDocumentSize) {
+        BAASDataChange1 <- FALSE
+        print("The data in the 'Documents' folder appears not to have changed.")
+      }else{
+        BAASDataChange1 <- TRUE
+        print("The data in the 'Documents' folder appears to have been changed. A new BAASWordFlagdf will therefore be created. TO UPDATE THIS SCRIPT, PLEASE CHANGE THE BAASDocumentSize TO REFLECT THE NEW SIZE OF THE DOCUMENTS.")
+        }
+      
+      if(file.exists(BAASWordFlagdfPath) == TRUE) {
+        BAASDataChange2 <- FALSE
+        print("The previous BAASWordFlagdf still exists.")
+      }else{
+        BAASDataChange2 <- TRUE
+        print("The previous BAASwordFlagdf seems to have been moved or deleted.  A new BAASWordFlag will therefore be created.")
+        }
+
+  if(BAASDataChange1|BAASDataChange2 == TRUE) {
+  
+      files <- list.files(path = BAASdoclocation, pattern = "txt", full.names = TRUE) #creates vector of txt file names.
+      if(file.exists(BAASoutputlocation) == FALSE){dir.create(BAASoutputlocation)}
+      BAASstemsearchedtermlist <- unique(wordStem(BAASsearchedtermlist)) #lemmatizes the list of terms you want to search for.
+      BAASWordFlagmat <- matrix(,ncol=12,nrow=1)
+      for (i in 1:length(files)) {
+        fileName <- read_file(files[i])
+        Encoding(fileName) <- "UTF-8"  #since tokenize_sentences function requires things to be encoded in UTF-8, need to remove some data.
+        fileName <- iconv(fileName, "UTF-8", "UTF-8",sub='')
+        ltoken <- tokenize_words(fileName, lowercase = TRUE, stopwords = NULL, simplify = FALSE)
+        ltoken <- unlist(ltoken)
+        stemltoken <- wordStem(ltoken) #this uses the Snowball library to lemmatize the entire text.
+        textID <- i
+        for (p in 1:length(BAASstemsearchedtermlist)) {
+          BAASstemsearchedterm <- BAASstemsearchedtermlist[p]
+          for (j in 1:length(stemltoken)) {
+              if (BAASstemsearchedterm == stemltoken[j]) {
+                if (j <= BAASlongconlength) {longtempvec <- ltoken[(1:(j+BAASlongconlength))]}
+                if (j > BAASlongconlength) {longtempvec <- ltoken[(j-BAASlongconlength):(j+BAASlongconlength)]}
+                if (j <= BAASshortconlength) {shorttempvec <- ltoken[(1:(j+BAASshortconlength))]}
+                if (j > BAASshortconlength) {shorttempvec <- ltoken[(j-BAASshortconlength):(j+BAASshortconlength)]}
+                if (j <= BAASPOSconlength) {POStempvec <- ltoken[(1:(j+BAASPOSconlength))]}
+                if (j > BAASPOSconlength) {POStempvec <- ltoken[(j-BAASPOSconlength):(j+BAASPOSconlength)]}
+                TempTextName <- gsub(paste0(BAASdoclocation,"/"),"",files[i]) #This grabs just the end of the file path.
+                TempTextName <- gsub(".txt","",TempTextName) #This removes the .txt from the end of the name.
+                temprow <- matrix(,ncol=12,nrow=1)
+                colnames(temprow) <- c("Text", "Text_ID", "BAASstemsearchedterm","Lemma","Lemma_Perc","KWIC","Total_Lemma","Date","Category","Short_KWIC","POS_KWIC","Current_Date")
+                temprow[1,1] <- TempTextName
+                temprow[1,2] <- textID
+                temprow[1,3] <- BAASstemsearchedterm
+                temprow[1,4] <- j
+                temprow[1,5] <- (j/length(stemltoken))*100
+                temprow[1,6] <- as.character(paste(longtempvec,sep= " ",collapse=" "))
+                temprow[1,7] <- length(stemltoken)
+                temprow[1,8] <- strsplit(TempTextName,"_")[[1]][1]
+                #Determining Category
+                  if(BAASstemsearchedterm %in% wordStem(BAASplaysearchedtermlist)) {temprow[1,9] <- "Play-Rhetoric"}
+                  if(BAASstemsearchedterm %in% wordStem(BAASworksearchedtermlist)) {temprow[1,9] <- "Work-Rhetoric"}
+                temprow[1,10] <- as.character(paste(shorttempvec,sep= " ",collapse=" "))
+                temprow[1,11] <- as.character(paste(POStempvec,sep= " ",collapse=" "))
+                temprow[1,12] <- format(Sys.time(), "%Y-%m-%d")
+                BAASWordFlagmat <- rbind(BAASWordFlagmat,temprow)
+              }
+          }
+        }
+        print(files[i]) #let's user watch as code runs for long searches
+      }
+      BAASWordFlagmat <- BAASWordFlagmat[-1,]
+      BAASWordFlagdf <- as.data.frame(BAASWordFlagmat)
+      write.table(BAASWordFlagdf, BAASWordFlagdfPath)
+      BAASWordFlagdf[1:5,]
+  }else{
+    print("Loading the previous dataset as BAASWordFlagdf")
+    BAASWordFlagdf <- read.table(BAASWordFlagdfPath)
+  }
+BAASWordFlagdf
+```
+
+We can then add up the values in BAASWordFlagdf to make a table of the frequency of play and work rhetoric, BAASFreqmat. This step is important because we also introduce a new column: "Sample_KWIC", which randomly chooses one example of Key Words in Context.
+```{r,  eval=FALSE}
+  # Adding values from BAASWordFlagdf together to get a matrix of normalized frequencies for each category, as BAASFreqmat
+      BAASWordFlagPlaydf <- BAASWordFlagdf[grep("Play-Rhetoric",BAASWordFlagdf$Category),]
+      BAASWordFlagWorkdf <- BAASWordFlagdf[grep("Work-Rhetoric",BAASWordFlagdf$Category),]
+      BAASFreqmat <- matrix(,ncol=8,nrow=1)
+      files <- list.files(path = BAASdoclocation, pattern = "txt", full.names = TRUE) #creates vector of txt file names.
+      for (i in 1:length(files)) {
+        TempTextName <- gsub(paste0(BAASdoclocation,"/"),"",files[i]) #This grabs just the end of the file path.
+        TempTextName <- gsub(".txt","",TempTextName) #This removes the .txt from the end of the name.
+        tempplaydf <- BAASWordFlagPlaydf[grep(TempTextName,BAASWordFlagPlaydf$Text),]
+        tempworkdf <- BAASWordFlagWorkdf[grep(TempTextName,BAASWordFlagWorkdf$Text),]
+        TempDate <- strsplit(TempTextName,"_")[[1]][1]
+        TempLength <- tempplaydf$Total_Lemma[1]
+        temprows <- matrix(,ncol=8,nrow=2)
+        colnames(temprows) <- c("Text", "Text_ID","Date","Category","Frequency","Total_Lemma","Normalized_Freq","Sample_KWIC")
+        temprows[1:2,1] <- as.character(TempTextName)
+        temprows[1:2,2] <- i
+        temprows[1:2,3] <- as.character(TempDate)
+        temprows[1,4] <- "Play-Rhetoric"
+        temprows[2,4] <- "Work-Rhetoric"
+        temprows[1,5] <- nrow(tempplaydf)
+        temprows[2,5] <- nrow(tempworkdf)
+        temprows[1:2,6]<- as.character(TempLength)
+        temprows[1,7] <- (as.numeric(temprows[1,5])/as.numeric(temprows[1,6]))*100
+        temprows[2,7] <- (as.numeric(temprows[2,5])/as.numeric(temprows[2,6]))*100
+        #temprows[1,8]
+          if(nrow(tempplaydf) > 0){temprows[1,8] <- as.character(sample(tempplaydf$Short_KWIC,1))}else{temprows[1,8] <- NA}
+        #temprows[2,8]
+          if(nrow(tempworkdf) >0) {temprows[2,8] <- as.character(sample(tempworkdf$Short_KWIC,1))}else{temprows[2,8] <- NA}
+        BAASFreqmat <- rbind(BAASFreqmat,temprows)
+      }
+      BAASFreqmat <- BAASFreqmat[-1,]
+      BAASFreqdf <- as.data.frame(BAASFreqmat)
+      BAASWordFlagdf$KWIC = as.character(BAASWordFlagdf$KWIC)
+      BAASWordFlagdf$Text = as.character(BAASWordFlagdf$Text)
+      BAASFreqdf
+
+```
+
+We can then answer questions using BAASFreqdf.  For instance, we can see that work rhetoric rises in *Reports* over time.
+
+```{r BAASFreqmat by date,  eval=FALSE}
+      
+  # Visualizing BAASFreqdf
+      p <- ggplot(BAASFreqdf, aes(y = as.numeric(as.character(Normalized_Freq)), x = as.numeric(as.character(Date)), color = Category))
+      pg <- geom_point(size=1,pch = 16)
+      pl <- p + pg + labs(x = "Date", y = "Normalized Frequency (% of Words in Text)", title = "Appearances of Play and Work Rhetoric within Reports of the BAAS")
+      pl
+```
+
+Or we can create an interactive graph that shows us an example key word in context from that year on rollover.
+
+```{r BAASFreqmat by date interactive,  eval=FALSE}
+      
+  # Visualizing BAASFreqdf
+      p <- ggplot(BAASFreqdf, aes(y = as.numeric(as.character(Normalized_Freq)), x = as.numeric(as.character(Date)), color = Category, label = Sample_KWIC))
+      pg <- geom_point(size=1,pch = 16)
+      pl <- p + pg + labs(x = "Date", y = "Normalized Frequency (% of Words in Text)", title = "Appearances of Play and Work Rhetoric within \nReports of the BAAS")
+      ggplotly(pl)
+
+```
+
+But as Tufte points out, time-series graphics are not good indicators of cause. For instance, even though intuition might tell us that play rhetoric would decrease when work rhetoric increases, I don't THINK that's the case here. But we should check, by charting play values on the x axis and corresponding work values on the y axis.
+```{r BAAS causality, eval=FALSE}
+#first we create a slightly different version of BAASFreqmat
+      BAASWordFlagPlaydf <- BAASWordFlagdf[grep("Play-Rhetoric",BAASWordFlagdf$Category),]
+      BAASWordFlagWorkdf <- BAASWordFlagdf[grep("Work-Rhetoric",BAASWordFlagdf$Category),]
+      NewBAASFreqmat <- matrix(,ncol=8,nrow=1)
+      files <- list.files(path = BAASdoclocation, pattern = "txt", full.names = TRUE) #creates vector of txt file names.
+      for (i in 1:length(files)) {
+        TempTextName <- gsub(paste0(BAASdoclocation,"/"),"",files[i]) #This grabs just the end of the file path.
+        TempTextName <- gsub(".txt","",TempTextName) #This removes the .txt from the end of the name.
+        tempplaydf <- BAASWordFlagPlaydf[grep(TempTextName,BAASWordFlagPlaydf$Text),]
+        tempworkdf <- BAASWordFlagWorkdf[grep(TempTextName,BAASWordFlagWorkdf$Text),]
+        TempDate <- strsplit(TempTextName,"_")[[1]][1]
+        TempLength <- tempplaydf$Total_Lemma[1]
+        temprows <- matrix(,ncol=8,nrow=1)
+        colnames(temprows) <- c("Text", "Text_ID","Date","Play_Freq","Work_Freq","Total_Lemma","Play_Norm_Freq","Work_Norm_Freq")
+        temprows[1,1] <- as.character(TempTextName)
+        temprows[1,2] <- i
+        temprows[1,3] <- as.character(TempDate)
+        temprows[1,4] <- nrow(tempplaydf)
+        temprows[1,5] <- nrow(tempworkdf)
+        temprows[1,6]<- as.character(TempLength)
+        temprows[1,7] <- (as.numeric(temprows[1,4])/as.numeric(temprows[1,6]))*100
+        temprows[1,8] <- (as.numeric(temprows[1,5])/as.numeric(temprows[1,6]))*100
+        NewBAASFreqmat <- rbind(NewBAASFreqmat,temprows)
+      }
+      NewBAASFreqmat <- NewBAASFreqmat[-1,]
+      NewBAASFreqdf <- as.data.frame(NewBAASFreqmat)
+      NewBAASFreqdf
+      #I want to add another column so I can add a third variable of date, aligned with the darkness of the dots.
+      NewBAASFreqdf$Year <- as.numeric(as.character(NewBAASFreqdf$Date))
+      
+      p <- ggplot(NewBAASFreqdf, aes(y = as.numeric(as.character(Work_Norm_Freq)), x = as.numeric(as.character(Play_Norm_Freq)), alpha = Year))
+      pg <- geom_point(size=1,pch = 16)
+      pl <- p + pg + labs(x = "Normalized Frequency of 'Play,' 'Player,' \nand 'Recreation' (% of Words in Volume)", y = "Normalized Frequency of 'Work,' 'Worker,' \nand 'Labor' (% of Words in Volume)", title = "Appearances of Play and Work Rhetoric within Reports of the BAAS")
+      pl
+      ggsave(file=paste0(getwd(),"/Applications/Victorian-Professional-Science-Writing/Reports-of-the-BAAS/Relationship.pdf"), device=pdf)
+```
+
+We can also visualize the terms which most frequently occur around the search terms in the two categories within this corpus.
+```{r BAAS work/play associations,  eval=FALSE}
+corpus <- corpus(BAASWordFlagdf, 
+                 docid_field="Text", 
+                 text_field="KWIC")
+group_BAASWordFlagdfm <- dfm(corpus, remove=c(stopwords("en"),BAASsearchedtermlist), remove_punct=TRUE, remove_numbers = TRUE, groups="Category")
+textplot_wordcloud(group_BAASWordFlagdfm,max.words=50, colors = RColorBrewer::brewer.pal(8,"Dark2"), comparison=TRUE)
+
+
+```
+
+Finally, we can run a very rudimentary qualitative sentiment analysis by looking at JUST the adjectives which appear around the term (for instance, within a 10 word range on either side). This requires part of speech (POS) tagging, which can take a very long time, which is why we are working from the "POS_KWIC" column of "BAASWordFlagdf." This also requires the use of the coreNLP library, which can take a long time to install and initialize, So this section has an extra parameter to initialize it.  
+
+**If you want to run a POS tagging script to view the most common adjectives and adverbs that accompany play and work rhetoric in the corpus, enter "DECBAASPOSApp <- TRUE" BELOW.**
+
+**IMPORTANT NOTE: Since creating a Word Flag matrix can take a nontrivial amount of time for larger corpuses, this script is designed only to run the program to create a new BAASWordFlagdf if there is a change to the dataset in folder "Documents" or if the previous BAASKWICPOSplaydf and BAASKWICPOSworkdf has been deleted.**
+
+First, we add a few more parameters determining what the output will be saved as.
+```{r DECBAASPOSApp parameter,  eval=FALSE}
+    BAASKWICPOSplaydfPath <- paste0(BAASoutputlocation,"/","BAASKWICPOSplaydf.txt")
+    BAASKWICPOSworkdfPath <- paste0(BAASoutputlocation,"/","BAASKWICPOSworkdf.txt")
+```
+
+Then we run a script to create dataset which identify and mark each of the adjectives and adverbs in our Key Words in context (the 10 word range one, as otherwise this quickly gets out of hand.)
+
+```{r DECBAASPOSApp,  eval=FALSE}
+   if(file.exists(BAASKWICPOSplaydfPath)&file.exists(BAASKWICPOSworkdfPath) == TRUE) {
+        BAASDataChange3 <- FALSE
+        print("The previous BAASWordFlagdf still exists.")
+      }else{
+        BAASDataChange3 <- TRUE
+        print("The previous BAASKWICPOSplaydf or BAASKWICPOSworkdf seems to have been moved or deleted.  A new BAASKWICPOSdf will therefore be created.")
+        }
+  
+  if(BAASDataChange1|BAASDataChange3 == TRUE) {
+    #we run part of speech tagging on each of these KWIC and draw out just the adjectives, and sum up the numbers.
+      #We do this for the play rhetoric data.
+        ADJADVplaydf <- data.frame( Var1=character(),Freq=numeric())
+        for(i in 1:nrow(BAASWordFlagPlaydf)) {
+          tempstring <- as.character(BAASWordFlagPlaydf$POS_KWIC[i])
+          anno <- annotateString(tempstring)
+          token <- getToken(anno)
+          ut <- universalTagset(token$POS)
+          index <- c(which(ut=="ADJ"), which(ut=="ADV"))
+          temptable <- table(token$lemma[index])
+          ADJADVplaydf <- rbind(ADJADVplaydf,as.data.frame(temptable))
+          print(i)
+        }
+        ADJADVplaydf <- aggregate(ADJADVplaydf$Freq, b=list(Category=ADJADVplaydf$Var1), FUN=sum)
+        BAASKWICPOSplaydf <- ADJADVplaydf[order(ADJADVplaydf$x, decreasing=TRUE),]  #reordering the matrix
+        write.table(BAASKWICPOSplaydf, BAASKWICPOSplaydfPath)
+        
+      #And for the work rhetoric data.
+        ADJADVworkdf <- data.frame( Var1=character(),Freq=numeric())
+        for(i in 1:nrow(BAASWordFlagWorkdf)) {
+          tempstring <- as.character(BAASWordFlagWorkdf$POS_KWIC[i])
+          anno <- annotateString(tempstring)
+          token <- getToken(anno)
+          ut <- universalTagset(token$POS)
+          index <- c(which(ut=="ADJ"), which(ut=="ADV"))
+          temptable <- table(token$lemma[index])
+          ADJADVworkdf <- rbind(ADJADVworkdf,as.data.frame(temptable))
+          print(i)
+        }
+        ADJADVworkdf <- aggregate(ADJADVworkdf$Freq, b=list(Category=ADJADVworkdf$Var1), FUN=sum)
+        BAASKWICPOSworkdf <- ADJADVworkdf[order(ADJADVworkdf$x, decreasing=TRUE),]  #reordering the matrix
+        write.table(BAASKWICPOSworkdf, BAASKWICPOSworkdfPath)
+  }else{
+    print("Loading the previous datasets as BAASKWICPOSplaydf and BAASKWICPOSworkdf")
+    BAASKWICPOSplaydf <- read.table(BAASKWICPOSplaydfPath)
+    BAASKWICPOSworkdf <- read.table(BAASKWICPOSworkdfPath)
+  }
+    BAASKWICPOSplaydf
+    BAASKWICPOSworkdf
+```
+
+Finally, we visualize the top 25 adjectives and adverbs in these KWIC sets. In this case, we don't learn very much, unfortunately.
+
+```{r DECBAASPOSApp Visualized,  eval=FALSE}
+        TopADJADVplaydf <- BAASKWICPOSplaydf[1:25,]
+        TopADJADVplaydf$Category <- factor(TopADJADVplaydf$Category, levels = TopADJADVplaydf$Category[order(TopADJADVplaydf$x)])
+        TopADJADVworkdf <- BAASKWICPOSworkdf[1:25,]
+        TopADJADVworkdf$Category <- factor(TopADJADVworkdf$Category, levels = TopADJADVworkdf$Category[order(TopADJADVworkdf$x)])
+    
+        #Then we visualize the top 25 adjectives and adverbs for work and play rhetoric.
+           p1 <- ggplot(TopADJADVplaydf, aes(y = as.numeric(as.character(x)), x = (Category)))
+           p2 <- geom_bar(stat="identity") 
+           p3 <- p1 + p2 + labs(x = "Adjective/Adverb near Play Rhetoric", y = "Frequency", title = "Common Adjectives and Adverbs near Play Rhetoric \nwithin Reports of the BAAS")
+           pl1 <- p3+coord_flip()
+          
+            p4 <- ggplot(TopADJADVworkdf, aes(y = as.numeric(as.character(x)), x = (Category)))
+           p5 <- geom_bar(stat="identity") 
+           p6 <- p4 + p5 + labs(x = "Adjective/Adverb near Play Rhetoric", y = "Frequency", title = "Common Adjectives and Adverbs near Work Rhetoric \nwithin Reports of the BAAS")
+           pl2 <- p6+coord_flip()
+           {print(pl1)
+           print(pl2)}
+```

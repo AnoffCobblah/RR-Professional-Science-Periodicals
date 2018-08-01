@@ -1,0 +1,175 @@
+---
+title: "06-RR-RoyalSocietyEdinburgh-PlayWorkRhetoric"
+author: "Anoff Nicholas Cobblah"
+date: "July 31, 2018"
+output: html_document
+  html_document:
+    number_sections: yes
+    toc: true
+    toc_depth: 6
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+##### **COMING SOON** "play", "player", "recreation", "work", "worker", and "labor" in *Proceedings at the Royal Society of Edinburgh*
+
+This script combines my Word Flagging and KWIC (tokenizer script) methods in order to create an interactive illustration of the frequency with which the terms "play", "player", "recreation", "work", "worker", and "labor" were referenced in *Proceedings of the Royal Society of Edinburgh*. The goal is to determine the context for work and play rhetoric in that publication.
+
+```{r ProcRSE Parameters,  eval=FALSE}
+    ProcRSElocation <- paste0(getwd(),"/Applications/Victorian-Professional-Science-Writing/Royal-Society-of-Edinburgh")
+    ProcRSEdoclocation <- paste0(ProcRSElocation,"/Documents")
+    ProcRSElongconlength <- 250
+    ProcRSEshortconlength <- 3
+    ProcRSEPOSconlength <- 10
+    ProcRSEplaysearchedtermlist <- c("play", "player", "recreation")
+    ProcRSEworksearchedtermlist <- c("work", "worker","labor")
+    ProcRSEsearchedtermlist <- c(ProcRSEplaysearchedtermlist,ProcRSEworksearchedtermlist)
+    ProcRSEoutputlocation <- ProcRSElocation
+    ProcRSEWordFlagdfPath <- paste0(ProcRSEoutputlocation,"/","ProcRSEWordFlagdf.txt")
+    ProcRSEDocumentSize <- 0
+```
+
+**IMPORTANT NOTE: Since creating a Word Flag matrix can take a nontrivial amount of time for larger corpuses, this script is designed only to run the program to create a new ProcRSEWordFlagdf if there is a change to the dataset in folder "Documents" or if the previous ProcRSEWordFlagdf has been deleted.**
+
+To create the data frame compiling every reference to a term, run the following script.
+
+```{r MarProcRSEApp Word Flag,  eval=FALSE}
+      if(sum(file.info(list.files(ProcRSEdoclocation, all.files = TRUE, recursive = TRUE, full.names=TRUE))$size) == ProcRSEDocumentSize) {
+        ProcRSEDataChange1 <- FALSE
+        print("The data in the 'Documents' folder appears not to have changed.")
+      }else{
+        ProcRSEDataChange1 <- TRUE
+        print("The data in the 'Documents' folder appears to have been changed. A new ProcRSEWordFlagdf will therefore be created. TO UPDATE THIS SCRIPT, PLEASE CHANGE THE ProcRSEDocumentSize TO REFLECT THE NEW SIZE OF THE DOCUMENTS.")
+        }
+      
+      if(file.exists(ProcRSEWordFlagdfPath) == TRUE) {
+        ProcRSEDataChange2 <- FALSE
+        print("The previous ProcRSEWordFlagdf still exists.")
+      }else{
+        ProcRSEDataChange2 <- TRUE
+        print("The previous ProcRSEwordFlagdf seems to have been moved or deleted.  A new ProcRSEWordFlag will therefore be created.")
+        }
+
+  if(ProcRSEDataChange1|ProcRSEDataChange2 == TRUE) {
+  
+      files <- list.files(path = ProcRSEdoclocation, pattern = "txt", full.names = TRUE) #creates vector of txt file names.
+      if(file.exists(ProcRSEoutputlocation) == FALSE){dir.create(ProcRSEoutputlocation)}
+      ProcRSEstemsearchedtermlist <- unique(wordStem(ProcRSEsearchedtermlist)) #lemmatizes the list of terms you want to search for.
+      ProcRSEWordFlagmat <- matrix(,ncol=12,nrow=1)
+      for (i in 1:length(files)) {
+        fileName <- read_file(files[i])
+        Encoding(fileName) <- "UTF-8"  #since tokenize_sentences function requires things to be encoded in UTF-8, need to remove some data.
+        fileName <- iconv(fileName, "UTF-8", "UTF-8",sub='')
+        ltoken <- tokenize_words(fileName, lowercase = TRUE, stopwords = NULL, simplify = FALSE)
+        ltoken <- unlist(ltoken)
+        stemltoken <- wordStem(ltoken) #this uses the Snowball library to lemmatize the entire text.
+        textID <- i
+        for (p in 1:length(ProcRSEstemsearchedtermlist)) {
+          ProcRSEstemsearchedterm <- ProcRSEstemsearchedtermlist[p]
+          for (j in 1:length(stemltoken)) {
+              if (ProcRSEstemsearchedterm == stemltoken[j]) {
+                if (j <= ProcRSElongconlength) {longtempvec <- ltoken[(1:(j+ProcRSElongconlength))]}
+                if (j > ProcRSElongconlength) {longtempvec <- ltoken[(j-ProcRSElongconlength):(j+ProcRSElongconlength)]}
+                if (j <= ProcRSEshortconlength) {shorttempvec <- ltoken[(1:(j+ProcRSEshortconlength))]}
+                if (j > ProcRSEshortconlength) {shorttempvec <- ltoken[(j-ProcRSEshortconlength):(j+ProcRSEshortconlength)]}
+                if (j <= ProcRSEPOSconlength) {POStempvec <- ltoken[(1:(j+ProcRSEPOSconlength))]}
+                if (j > ProcRSEPOSconlength) {POStempvec <- ltoken[(j-ProcRSEPOSconlength):(j+ProcRSEPOSconlength)]}
+                TempTextName <- gsub(paste0(ProcRSEdoclocation,"/"),"",files[i]) #This grabs just the end of the file path.
+                TempTextName <- gsub(".txt","",TempTextName) #This removes the .txt from the end of the name.
+                temprow <- matrix(,ncol=12,nrow=1)
+                colnames(temprow) <- c("Text", "Text_ID", "ProcRSEstemsearchedterm","Lemma","Lemma_Perc","KWIC","Total_Lemma","Date","Category","Short_KWIC","POS_KWIC","Current_Date")
+                temprow[1,1] <- TempTextName
+                temprow[1,2] <- textID
+                temprow[1,3] <- ProcRSEstemsearchedterm
+                temprow[1,4] <- j
+                temprow[1,5] <- (j/length(stemltoken))*100
+                temprow[1,6] <- as.character(paste(longtempvec,sep= " ",collapse=" "))
+                temprow[1,7] <- length(stemltoken)
+                temprow[1,8] <- strsplit(TempTextName,"_")[[1]][1]
+                #Determining Category
+                  if(ProcRSEstemsearchedterm %in% wordStem(ProcRSEplaysearchedtermlist)) {temprow[1,9] <- "Play-Rhetoric"}
+                  if(ProcRSEstemsearchedterm %in% wordStem(ProcRSEworksearchedtermlist)) {temprow[1,9] <- "Work-Rhetoric"}
+                temprow[1,10] <- as.character(paste(shorttempvec,sep= " ",collapse=" "))
+                temprow[1,11] <- as.character(paste(POStempvec,sep= " ",collapse=" "))
+                temprow[1,12] <- format(Sys.time(), "%Y-%m-%d")
+                ProcRSEWordFlagmat <- rbind(ProcRSEWordFlagmat,temprow)
+              }
+          }
+        }
+        print(paste0(i," out of ",length(files))) #let's user watch as code runs for long searches
+      }
+      ProcRSEWordFlagmat <- ProcRSEWordFlagmat[-1,]
+      ProcRSEWordFlagdf <- as.data.frame(ProcRSEWordFlagmat)
+      write.table(ProcRSEWordFlagdf, ProcRSEWordFlagdfPath)
+      ProcRSEWordFlagdf[1:5,]
+  }else{
+    print("Loading the previous dataset as ProcRSEWordFlagdf")
+    ProcRSEWordFlagdf <- read.table(ProcRSEWordFlagdfPath)
+  }
+ProcRSEWordFlagdf
+```
+
+We can then add up the values in ProcRSEWordFlagdf to make a table of the frequency of play and work rhetoric, ProcRSEFreqmat. It's important to do it this way because it allows us to choose a random KWIC.
+
+```{r ProcRSEFreqmat,  eval=FALSE}
+  # Adding values from ProcRSEWordFlagdf together to get a matrix of normalized frequencies for each category, as ProcRSEFreqmat
+  ProcRSEWordFlagPlaydf <- ProcRSEWordFlagdf[grep("Play-Rhetoric",ProcRSEWordFlagdf$Category),]
+      ProcRSEWordFlagWorkdf <- ProcRSEWordFlagdf[grep("Work-Rhetoric",ProcRSEWordFlagdf$Category),]
+      ProcRSEFreqmat <- matrix(,ncol=9,nrow=1)
+      files <- list.files(path = ProcRSEdoclocation, pattern = "txt", full.names = TRUE)
+      for (i in 1:length(files)) {
+        TempTextName <- gsub(paste0(ProcRSEdoclocation,"/"),"",files[i]) #This grabs just the end of the file path.
+        TempTextName <- gsub(".txt","",TempTextName) #This removes the .txt from the end of the name.
+        tempplaydf <- ProcRSEWordFlagPlaydf[grep(TempTextName,ProcRSEWordFlagPlaydf$Text),]
+        tempworkdf <- ProcRSEWordFlagWorkdf[grep(TempTextName,ProcRSEWordFlagWorkdf$Text),]
+        TempDate <- strsplit(TempTextName,"_")[[1]][1]
+        TempLength <- tempplaydf$Total_Lemma[1]
+        temprows <- matrix(,ncol=9,nrow=2)
+        colnames(temprows) <- c("Text", "Text_ID","Date","Category","Frequency","Total_Lemma","Normalized_Freq","Sample_KWIC","Avg_Lemma_Perc")
+        temprows[1:2,1] <- as.character(TempTextName)
+        temprows[1:2,2] <- i
+        temprows[1:2,3] <- as.character(TempDate)
+        temprows[1,4] <- "Play-Rhetoric"
+        temprows[2,4] <- "Work-Rhetoric"
+        temprows[1,5] <- nrow(tempplaydf)
+        temprows[2,5] <- nrow(tempworkdf)
+        temprows[1:2,6]<- as.character(TempLength)
+        temprows[1,7] <- (as.numeric(temprows[1,5])/as.numeric(temprows[1,6]))*100
+        temprows[2,7] <- (as.numeric(temprows[2,5])/as.numeric(temprows[2,6]))*100
+        #temprows[1,8]
+          if(nrow(tempplaydf) > 0){temprows[1,8] <- as.character(sample(tempplaydf$Short_KWIC,1))}else{temprows[1,8] <- NA}
+        #temprows[2,8]
+          if(nrow(tempworkdf) >0) {temprows[2,8] <- as.character(sample(tempworkdf$Short_KWIC,1))}else{temprows[2,8] <- NA}
+        temprows[1,9] <- mean(as.numeric(as.character(tempplaydf$Lemma_Perc)))
+        temprows[2,9] <- mean(as.numeric(as.character(tempworkdf$Lemma_Perc)))
+        ProcRSEFreqmat <- rbind(ProcRSEFreqmat,temprows)
+      }
+      ProcRSEFreqmat <- ProcRSEFreqmat[-1,]
+      ProcRSEFreqdf <- as.data.frame(ProcRSEFreqmat)
+      ProcRSEFreqdf
+```
+
+With the data in hand, we can now ask some questions about our corpus, such as: Do references to play or work rhetoric in *Proceedings of the Royal Society of Edinburgh* increase over the course of its run? (Note that here I'm using the substr() function to just pull the year from the date). 
+
+```{r ProcRSEWordFreqmat Visual,  eval=FALSE}
+# Visualizing ProcRSEFreqdf BY DATE
+      p <- ggplot(ProcRSEFreqdf, aes(y = as.numeric(as.character(Normalized_Freq)), x = as.numeric(substr(Date,1,4)), color = Category, label = Sample_KWIC))
+      pg <- geom_point(size=1,pch = 16)
+      pl <- p + pg + labs(x = "Date", y = "Normalized Frequency (% of Words in Text)", title = "Appearances of Play and Work Rhetoric within Proceedings of the RSE")
+      ggplotly(pl)
+```
+
+
+We can also visualize the terms which most frequently occur around the search terms in the two categories within this corpus. **Again, "science" is on the work side, while music and childhood are on the play side.**
+```{r ProcRSE Work/Play association,  eval=FALSE}
+ProcRSEWordFlagdf$KWIC <- as.character(ProcRSEWordFlagdf$KWIC)
+ProcRSEWordFlagdf$Text <- as.character(ProcRSEWordFlagdf$Text)
+corpus <- corpus(ProcRSEWordFlagdf, 
+                 docid_field="Text", 
+                 text_field="KWIC")
+group_ProcRSEWordFlagdfm <- dfm(corpus, remove=c(stopwords("en"),ProcRSEsearchedtermlist), remove_punct=TRUE, remove_numbers = TRUE, groups="Category")
+textplot_wordcloud(group_ProcRSEWordFlagdfm,max.words=50, colors = RColorBrewer::brewer.pal(8,"Dark2"), comparison=TRUE)
+```

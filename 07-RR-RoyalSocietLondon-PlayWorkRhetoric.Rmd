@@ -1,0 +1,175 @@
+---
+title: "07-RR-RoyalSocietLondon-PlayWorkRhetoric"
+author: "Anoff Nicholas Cobblah"
+date: "July 31, 2018"
+output: html_document
+  html_document:
+    number_sections: yes
+    toc: true
+    toc_depth: 6
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##### **PROVISIONAL** "play", "player", "recreation", "work", "worker", and "labor" in *Proceedings at the Royal Society of London* (cORPUS DATA STILL NEEDS CLEANING. DIGITIZATION INFO BIASING RESULTS.)
+
+This script combines my Word Flagging and KWIC (tokenizer script) methods in order to create an interactive illustration of the frequency with which the terms "play", "player", "recreation", "work", "worker", and "labor" were referenced in the *Proceedings of the Royal Society of London*, and its earlier titles *Abstracts of the Papers Printed in the Philosophical Transactions* and *Abstracts of the Papers Communicated to the Royal Society of London*. The goal is to determine the context for work and play rhetoric in that publication.
+
+```{r RoySocLon Parameters,  eval=FALSE}
+    RoySocLonlocation <- paste0(getwd(),"/Applications/Victorian-Professional-Science-Writing/RSL")
+    RoySocLondoclocation <- paste0(RoySocLonlocation,"/Documents")
+    RoySocLonlongconlength <- 250
+    RoySocLonshortconlength <- 3
+    RoySocLonPOSconlength <- 10
+    RoySocLonplaysearchedtermlist <- c("play", "player", "recreation")
+    RoySocLonworksearchedtermlist <- c("work", "worker","labor")
+    RoySocLonsearchedtermlist <- c(RoySocLonplaysearchedtermlist,RoySocLonworksearchedtermlist)
+    RoySocLonoutputlocation <- RoySocLonlocation
+    RoySocLonWordFlagdfPath <- paste0(RoySocLonoutputlocation,"/","RoySocLonWordFlagdf.txt")
+    RoySocLonDocumentSize <- 133327151
+```
+
+**IMPORTANT NOTE: Since creating a Word Flag matrix can take a nontrivial amount of time for larger corpuses, this script is designed only to run the program to create a new RoySocLonWordFlagdf if there is a change to the dataset in folder "Documents" or if the previous RoySocLonWordFlagdf has been deleted.**
+
+To create the data frame compiling every reference to a term, run the following script.
+
+```{r MarRoySocLonApp Word Flag,  eval=FALSE}
+      if(sum(file.info(list.files(RoySocLondoclocation, all.files = TRUE, recursive = TRUE, full.names=TRUE))$size) == RoySocLonDocumentSize) {
+        RoySocLonDataChange1 <- FALSE
+        print("The data in the 'Documents' folder appears not to have changed.")
+      }else{
+        RoySocLonDataChange1 <- TRUE
+        print("The data in the 'Documents' folder appears to have been changed. A new RoySocLonWordFlagdf will therefore be created. TO UPDATE THIS SCRIPT, PLEASE CHANGE THE RoySocLonDocumentSize TO REFLECT THE NEW SIZE OF THE DOCUMENTS.")
+        }
+      
+      if(file.exists(RoySocLonWordFlagdfPath) == TRUE) {
+        RoySocLonDataChange2 <- FALSE
+        print("The previous RoySocLonWordFlagdf still exists.")
+      }else{
+        RoySocLonDataChange2 <- TRUE
+        print("The previous RoySocLonwordFlagdf seems to have been moved or deleted.  A new RoySocLonWordFlag will therefore be created.")
+        }
+
+  if(RoySocLonDataChange1|RoySocLonDataChange2 == TRUE) {
+  
+      files <- list.files(path = RoySocLondoclocation, pattern = "txt", full.names = TRUE) #creates vector of txt file names.
+      if(file.exists(RoySocLonoutputlocation) == FALSE){dir.create(RoySocLonoutputlocation)}
+      RoySocLonstemsearchedtermlist <- unique(wordStem(RoySocLonsearchedtermlist)) #lemmatizes the list of terms you want to search for.
+      RoySocLonWordFlagmat <- matrix(,ncol=12,nrow=1)
+      for (i in 1:length(files)) {
+        fileName <- read_file(files[i])
+        Encoding(fileName) <- "UTF-8"  #since tokenize_sentences function requires things to be encoded in UTF-8, need to remove some data.
+        fileName <- iconv(fileName, "UTF-8", "UTF-8",sub='')
+        ltoken <- tokenize_words(fileName, lowercase = TRUE, stopwords = NULL, simplify = FALSE)
+        ltoken <- unlist(ltoken)
+        stemltoken <- wordStem(ltoken) #this uses the Snowball library to lemmatize the entire text.
+        textID <- i
+        for (p in 1:length(RoySocLonstemsearchedtermlist)) {
+          RoySocLonstemsearchedterm <- RoySocLonstemsearchedtermlist[p]
+          for (j in 1:length(stemltoken)) {
+              if (RoySocLonstemsearchedterm == stemltoken[j]) {
+                if (j <= RoySocLonlongconlength) {longtempvec <- ltoken[(1:(j+RoySocLonlongconlength))]}
+                if (j > RoySocLonlongconlength) {longtempvec <- ltoken[(j-RoySocLonlongconlength):(j+RoySocLonlongconlength)]}
+                if (j <= RoySocLonshortconlength) {shorttempvec <- ltoken[(1:(j+RoySocLonshortconlength))]}
+                if (j > RoySocLonshortconlength) {shorttempvec <- ltoken[(j-RoySocLonshortconlength):(j+RoySocLonshortconlength)]}
+                if (j <= RoySocLonPOSconlength) {POStempvec <- ltoken[(1:(j+RoySocLonPOSconlength))]}
+                if (j > RoySocLonPOSconlength) {POStempvec <- ltoken[(j-RoySocLonPOSconlength):(j+RoySocLonPOSconlength)]}
+                TempTextName <- gsub(paste0(RoySocLondoclocation,"/"),"",files[i]) #This grabs just the end of the file path.
+                TempTextName <- gsub(".txt","",TempTextName) #This removes the .txt from the end of the name.
+                temprow <- matrix(,ncol=12,nrow=1)
+                colnames(temprow) <- c("Text", "Text_ID", "RoySocLonstemsearchedterm","Lemma","Lemma_Perc","KWIC","Total_Lemma","Date","Category","Short_KWIC","POS_KWIC","Current_Date")
+                temprow[1,1] <- TempTextName
+                temprow[1,2] <- textID
+                temprow[1,3] <- RoySocLonstemsearchedterm
+                temprow[1,4] <- j
+                temprow[1,5] <- (j/length(stemltoken))*100
+                temprow[1,6] <- as.character(paste(longtempvec,sep= " ",collapse=" "))
+                temprow[1,7] <- length(stemltoken)
+                temprow[1,8] <- strsplit(TempTextName,"_")[[1]][1]
+                #Determining Category
+                  if(RoySocLonstemsearchedterm %in% wordStem(RoySocLonplaysearchedtermlist)) {temprow[1,9] <- "Play-Rhetoric"}
+                  if(RoySocLonstemsearchedterm %in% wordStem(RoySocLonworksearchedtermlist)) {temprow[1,9] <- "Work-Rhetoric"}
+                temprow[1,10] <- as.character(paste(shorttempvec,sep= " ",collapse=" "))
+                temprow[1,11] <- as.character(paste(POStempvec,sep= " ",collapse=" "))
+                temprow[1,12] <- format(Sys.time(), "%Y-%m-%d")
+                RoySocLonWordFlagmat <- rbind(RoySocLonWordFlagmat,temprow)
+              }
+          }
+        }
+        print(paste0(i," out of ",length(files))) #let's user watch as code runs for long searches
+      }
+      RoySocLonWordFlagmat <- RoySocLonWordFlagmat[-1,]
+      RoySocLonWordFlagdf <- as.data.frame(RoySocLonWordFlagmat)
+      write.table(RoySocLonWordFlagdf, RoySocLonWordFlagdfPath)
+      RoySocLonWordFlagdf[1:5,]
+  }else{
+    print("Loading the previous dataset as RoySocLonWordFlagdf")
+    RoySocLonWordFlagdf <- read.table(RoySocLonWordFlagdfPath)
+  }
+RoySocLonWordFlagdf
+```
+
+
+We can then add up the values in RoySocLonWordFlagdf to make a table of the frequency of play and work rhetoric, RoySocLonFreqmat. It's important to do it this way because it allows us to choose a random KWIC.
+
+```{r RoySocLonFreqmat,  eval=FALSE}
+  # Adding values from RoySocLonWordFlagdf together to get a matrix of normalized frequencies for each category, as RoySocLonFreqmat
+  RoySocLonWordFlagPlaydf <- RoySocLonWordFlagdf[grep("Play-Rhetoric",RoySocLonWordFlagdf$Category),]
+      RoySocLonWordFlagWorkdf <- RoySocLonWordFlagdf[grep("Work-Rhetoric",RoySocLonWordFlagdf$Category),]
+      RoySocLonFreqmat <- matrix(,ncol=9,nrow=1)
+      files <- list.files(path = RoySocLondoclocation, pattern = "txt", full.names = TRUE)
+      for (i in 1:length(files)) {
+        TempTextName <- gsub(paste0(RoySocLondoclocation,"/"),"",files[i]) #This grabs just the end of the file path.
+        TempTextName <- gsub(".txt","",TempTextName) #This removes the .txt from the end of the name.
+        tempplaydf <- RoySocLonWordFlagPlaydf[grep(TempTextName,RoySocLonWordFlagPlaydf$Text),]
+        tempworkdf <- RoySocLonWordFlagWorkdf[grep(TempTextName,RoySocLonWordFlagWorkdf$Text),]
+        TempDate <- strsplit(TempTextName,"_")[[1]][1]
+        TempLength <- tempplaydf$Total_Lemma[1]
+        temprows <- matrix(,ncol=9,nrow=2)
+        colnames(temprows) <- c("Text", "Text_ID","Date","Category","Frequency","Total_Lemma","Normalized_Freq","Sample_KWIC","Avg_Lemma_Perc")
+        temprows[1:2,1] <- as.character(TempTextName)
+        temprows[1:2,2] <- i
+        temprows[1:2,3] <- as.character(TempDate)
+        temprows[1,4] <- "Play-Rhetoric"
+        temprows[2,4] <- "Work-Rhetoric"
+        temprows[1,5] <- nrow(tempplaydf)
+        temprows[2,5] <- nrow(tempworkdf)
+        temprows[1:2,6]<- as.character(TempLength)
+        temprows[1,7] <- (as.numeric(temprows[1,5])/as.numeric(temprows[1,6]))*100
+        temprows[2,7] <- (as.numeric(temprows[2,5])/as.numeric(temprows[2,6]))*100
+        #temprows[1,8]
+          if(nrow(tempplaydf) > 0){temprows[1,8] <- as.character(sample(tempplaydf$Short_KWIC,1))}else{temprows[1,8] <- NA}
+        #temprows[2,8]
+          if(nrow(tempworkdf) >0) {temprows[2,8] <- as.character(sample(tempworkdf$Short_KWIC,1))}else{temprows[2,8] <- NA}
+        temprows[1,9] <- mean(as.numeric(as.character(tempplaydf$Lemma_Perc)))
+        temprows[2,9] <- mean(as.numeric(as.character(tempworkdf$Lemma_Perc)))
+        RoySocLonFreqmat <- rbind(RoySocLonFreqmat,temprows)
+      }
+      RoySocLonFreqmat <- RoySocLonFreqmat[-1,]
+      RoySocLonFreqdf <- as.data.frame(RoySocLonFreqmat)
+      RoySocLonFreqdf
+```
+
+With the data in hand, we can now ask some questions about our corpus, such as: Do references to play or work rhetoric in *Proceedings of the Royal Society* increase over the course of its run? (Note that here I'm using the substr() function to just pull the year from the date). **AS EXPECTED, WE FIND THAT WORK RHETORIC INCREASES, WHILE PLAY STAYS BASICALLY THE SAME.** 
+
+```{r RoySocLonWordFreqmat Visual,  eval=FALSE}
+# Visualizing RoySocLonFreqdf BY DATE
+      p <- ggplot(RoySocLonFreqdf, aes(y = as.numeric(as.character(Normalized_Freq)), x = as.numeric(substr(Date,1,4)), color = Category, label = Sample_KWIC))
+      pg <- geom_point(size=1,pch = 16)
+      pl <- p + pg + labs(x = "Date", y = "Normalized Frequency (% of Words in Text)", title = "Appearances of Play and Work Rhetoric within Proceedings \nof the Royal Society")
+      ggplotly(pl)
+```
+
+
+We can also visualize the terms which most frequently occur around the search terms in the two categories within this corpus. Again, work frequently appears near science and scientific.
+```{r RoySocLon Work/Play association,  eval=FALSE}
+RoySocLonWordFlagdf$KWIC <- as.character(RoySocLonWordFlagdf$KWIC)
+RoySocLonWordFlagdf$Text <- as.character(RoySocLonWordFlagdf$Text)
+corpus <- corpus(RoySocLonWordFlagdf, 
+                 docid_field="Text", 
+                 text_field="KWIC")
+group_RoySocLonWordFlagdfm <- dfm(corpus, remove=c(stopwords("en"),RoySocLonsearchedtermlist), remove_punct=TRUE, remove_numbers = TRUE, groups="Category")
+textplot_wordcloud(group_RoySocLonWordFlagdfm,max.words=50, colors = RColorBrewer::brewer.pal(8,"Dark2"), comparison=TRUE)
+```

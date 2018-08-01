@@ -1,0 +1,129 @@
+---
+title: "02-RR-Nature-Sports"
+author: "Anoff Nicholas Cobblah"
+date: "July 31, 2018"
+output: html_document
+  html_document:
+    number_sections: yes
+    toc: true
+    toc_depth: 6
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### May 2018: "Golf","Tennis", "Shuttlecock", and "Football" in *Nature*, *Notices of the Proceedings at the Meetings of the Members of the Royal Institution*, *Philosophical Magazine*, *Proceedings at the Royal Society of Edinburgh*, *Proceedings at the Royal Society of London*, the *Reports of the BAAS*
+
+In a previous experiment, I attempted to see whether within the discourse of Victorian science, "cricket" was associated with nation. I could not find a way to do this successfully. In this section, I attempt to see if other sports were associated with nation/empire. Maybe I can draw an analogy to cricket this way.
+
+```{r ProfSports Parameters,  eval=FALSE}
+    templocation <- paste0(getwd(),"/Applications/Victorian-Professional-Science-Writing")
+    ProfSportslocations2 <- c(paste0(templocation,"/Nature/Documents"),paste0(templocation,"/Philosophical-Magazine/Documents"),paste0(templocation,"/Reports-of-the-BAAS/Documents"),paste0(templocation,"/Royal-Institution/Documents"),paste0(templocation,"/Royal-Society-of-Edinburgh/Documents"), paste0(templocation,"/RSL/Documents"))
+    ProfSportsIndex2 <- c("Nature","Philosophical-Magazine","BAAS","Royal-Institution","RSE","RSL")
+    ProfSportslongconlength2 <- 250
+    ProfSportsshortconlength2 <- 3
+    ProfSportsPOSconlength2 <- 10
+    ProfSportssearchedtermlist2 <- c("golf","tennis","football","shuttlecock")
+    ProfSportsoutputlocation2 <- templocation
+    ProfSportsWordFlagdfPath2 <- paste0(ProfSportsoutputlocation2,"/","ProfSportsWordFlagdf.txt")
+```
+
+To create the data frame compiling every reference to a term, run the following script. Be aware that this takes quite a while.
+
+```{r ProfSportsApp Word Flag,  eval=FALSE}
+if(file.exists(ProfSportsoutputlocation2) == FALSE){dir.create(ProfSportsoutputlocation2)}
+ProfSportsstemsearchedtermlist2 <- unique(wordStem(ProfSportssearchedtermlist2)) #lemmatizes the list of terms you want to search for.
+ProfSportsWordFlagmat2 <- matrix(,ncol=13,nrow=1)
+for (g in 1:length(ProfSportslocations2)) {
+      tempdocloc <- ProfSportslocations2[g]
+      files <- list.files(path = tempdocloc, pattern = "txt", full.names = TRUE) #creates vector of txt file names.
+
+      for (i in 1:length(files)) {
+        fileName <- read_file(files[i])
+        Encoding(fileName) <- "UTF-8"  #since tokenize_sentences function requires things to be encoded in UTF-8, need to remove some data.
+        fileName <- iconv(fileName, "UTF-8", "UTF-8",sub='')
+        ltoken <- tokenize_words(fileName, lowercase = TRUE, stopwords = NULL, simplify = FALSE)
+        ltoken <- unlist(ltoken)
+        stemltoken <- wordStem(ltoken) #this uses the Snowball library to lemmatize the entire text.
+        textID <- i
+        for (p in 1:length(ProfSportsstemsearchedtermlist2)) {
+          ProfSportsstemsearchedterm2 <- ProfSportsstemsearchedtermlist2[p]
+          for (j in 1:length(stemltoken)) {
+              if (ProfSportsstemsearchedterm2 == stemltoken[j]) {
+                if (j <= ProfSportslongconlength2) {longtempvec <- ltoken[(1:(j+ProfSportslongconlength2))]}
+                if (j > ProfSportslongconlength2) {longtempvec <- ltoken[(j-ProfSportslongconlength2):(j+ProfSportslongconlength2)]}
+                if (j <= ProfSportsshortconlength2) {shorttempvec <- ltoken[(1:(j+ProfSportsshortconlength2))]}
+                if (j > ProfSportsshortconlength2) {shorttempvec <- ltoken[(j-ProfSportsshortconlength2):(j+ProfSportsshortconlength2)]}
+                if (j <= ProfSportsPOSconlength2) {POStempvec <- ltoken[(1:(j+ProfSportsPOSconlength2))]}
+                if (j > ProfSportsPOSconlength2) {POStempvec <- ltoken[(j-ProfSportsPOSconlength2):(j+ProfSportsPOSconlength2)]}
+                TempTextName <- gsub(paste0(ProfSportslocations2[g],"/"),"",files[i]) #This grabs just the end of the file path.
+                TempTextName <- gsub(".txt","",TempTextName) #This removes the .txt from the end of the name.
+                temprow <- matrix(,ncol=13,nrow=1)
+                colnames(temprow) <- c("Text", "Text_ID", "ProfSportsstemsearchedterm2","Lemma","Lemma_Perc","KWIC","Total_Lemma","Date","Category","Short_KWIC","POS_KWIC","Current_Date","Corpus")
+                temprow[1,1] <- TempTextName
+                temprow[1,2] <- textID
+                temprow[1,3] <- ProfSportsstemsearchedterm2
+                temprow[1,4] <- j
+                temprow[1,5] <- (j/length(stemltoken))*100
+                temprow[1,6] <- as.character(paste(longtempvec,sep= " ",collapse=" "))
+                temprow[1,7] <- length(stemltoken)
+                temprow[1,8] <- strsplit(TempTextName,"_")[[1]][1]
+                temprow[1,10] <- as.character(paste(shorttempvec,sep= " ",collapse=" "))
+                temprow[1,11] <- as.character(paste(POStempvec,sep= " ",collapse=" "))
+                temprow[1,12] <- format(Sys.time(), "%Y-%m-%d")
+                temprow[1,13] <- ProfSportsIndex2[g]
+                ProfSportsWordFlagmat2 <- rbind(ProfSportsWordFlagmat2,temprow)
+              }
+          }
+        }
+        print(paste0(i," out of ",length(files)," in corpus ",g," out of ",length(ProfSportslocations2))) #let's user watch as code runs for long searches
+      }
+}
+      ProfSportsWordFlagmat2 <- ProfSportsWordFlagmat2[-1,]
+      ProfSportsWordFlagdf2 <- as.data.frame(ProfSportsWordFlagmat2)
+      write.table(ProfSportsWordFlagdf2, ProfSportsWordFlagdfPath2)
+ProfSportsWordFlagdf2
+```
+
+Or to upload the previous dataset, run this script.
+```{r ProsSportsWordFlagdf Upload, eval=FALSE}
+ProfSportsWordFlagdf2 <- read.table(ProfSportsWordFlagdfPath2)
+ProfSportsWordFlagdf2
+```
+
+This time we get 341 flags, a much more substantial numberr.
+
+With the data in hand, we can now ask some questions about our corpus, such as: Do references to these sports in Victorian Professional Science Publications increase over the course of the century? Yes, almost all sports are mentioned more frequently at the end of the century, although shuttlecock takes a dip.
+
+```{r ProfSportsFreqmat Visual,  eval=FALSE}
+# Visualizing ProfSportsFreqdf BY DATE
+      p <- ggplot(ProfSportsWordFlagdf2, aes(x = as.numeric(substr(Date,1,4))))
+      pg <- geom_histogram(binwidth=5)
+      pl <- p + pg + scale_x_continuous(limits = c(1800, 1900))  + labs(x = "Date", y = "Frequency / Decade", title = "Appearances of Sports with Victorian Professional Science Periodicals")+facet_wrap(~ProfSportsstemsearchedterm2)
+      (pl)
+```
+
+We can also visualize the terms which most frequently occur around the search terms in the two categories within this corpus. What strikes me most interesting here is the association of "footbal" with "molecul." Unfortunately, the association with country I had hoped to find doesn't appear to be there.
+
+```{r ProfSports Work/Play association,  eval=FALSE}
+  CorrelationMin <- 0.1
+  ProfSportsstemsearchedtermlist2 <- unique(wordStem(ProfSportssearchedtermlist2)) #lemmatizes the list of terms you want to search for.
+  datacorpus <- Corpus(VectorSource(ProfSportsWordFlagdf2$KWIC), readerControl=list(reader = readPlain))
+  data.tdm <- TermDocumentMatrix(datacorpus,control = list(removePunctuation = TRUE, stopwords = FALSE, tolower = TRUE, stemming = TRUE, 
+                                                           removeNumbers = TRUE, bounds = list(global= c(1,Inf))))
+  for (q in 1:length(ProfSportsstemsearchedtermlist2)) {
+    print(q)
+    assocdata <- findAssocs(data.tdm, ProfSportsstemsearchedtermlist2[q], CorrelationMin)
+    tempdata <- as.data.frame(unlist(assocdata[[1]][1:20]))
+    keyword <- ProfSportsstemsearchedtermlist2[q]
+    AssociatedWord <- rownames(tempdata)
+    correlation <- tempdata[[1]]
+    tempdata2 <- data.frame(correlation,keyword,AssociatedWord)
+      p <- ggplot(tempdata2, aes(x = AssociatedWord, y=as.numeric(correlation)))
+      pg <- geom_bar(stat="identity")
+      pl <- p + pg + labs(x = "Associated Words", y = "Correlation", title = paste0("Words Associated with '",ProfSportsstemsearchedtermlist2[q], "' in Victorian Professional Science Periodicals"))+coord_flip()
+      print(pl)
+  }
+
+```

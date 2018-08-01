@@ -1,0 +1,97 @@
+---
+title: '1-RR-Nature-Cricket'
+author: "Anoff Nicholas Cobblah"
+date: "December 16, 2017"
+output:
+  html_document:
+    number_sections: yes
+    toc: true
+    toc_depth: 6
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+#### May 2018: "Cricket bats" and "cricket balls" in *Nature*, *Notices of the Proceedings at the Meetings of the Members of the Royal Institution*, *Philosophical Magazine*, *Proceedings at the Royal Society of Edinburgh*, *Proceedings at the Royal Society of London*, the *Reports of the BAAS*
+
+This is part of a project to investigate the context for the sport of "cricket" for the Victorians. I'm particularly interested to see if it was associated with nationality / empire. This script combines my Word Flagging and KWIC (tokenizer script) methods in order to create an interactive illustration of the frequency with which the terms associated with cricket, golf, tennis, and football were referenced in these periodicals. The goal is to determine the context for these terms in those publications, so I end by using tm to find the most frequent words for each term. 
+**NOTE: You cannot simply search for "cricket, as this creates too many false data points in a scientific data set. That is why my search focuses on the sports ball and its equipment (e.g. "cricket bat", "cricket ball")**
+**NOTE: I initially considered adding "racing", but this was identical to "race" which created several false matches.)**
+
+```{r ProfSportsBalls Parameters,  eval=FALSE}
+    templocation <- paste0(getwd(),"/Applications/Victorian-Professional-Science-Writing")
+    ProfSportslocations <- c(paste0(templocation,"/Nature/Documents"),paste0(templocation,"/Philosophical-Magazine/Documents"),paste0(templocation,"/Reports-of-the-BAAS/Documents"),paste0(templocation,"/Royal-Institution/Documents"),paste0(templocation,"/Royal-Society-of-Edinburgh/Documents"), paste0(templocation,"/RSL/Documents"))
+    ProfSportsIndex <- c("Nature","Philosophical-Magazine","BAAS","Royal-Institution","RSE","RSL")
+    ProfSportslongconlength <- 250
+    ProfSportsshortconlength <- 3
+    ProfSportsPOSconlength <- 10
+    ProfSportssearchedtermlist <- c("cricket ball","cricket bat", "golf ball","golf club", "tennis ball","tennis racket")
+    ProfSportsoutputlocation <- templocation
+    ProfSportsWordFlagdfPath <- paste0(ProfSportsoutputlocation,"/","ProfSportsWordFlagdf.txt")
+```
+
+To create the data frame compiling every reference to a term, run the following script. Be aware that this takes quite a while.
+
+```{r ProfSportsBallsApp Word Flag,  eval=FALSE}
+if(file.exists(ProfSportsoutputlocation) == FALSE){dir.create(ProfSportsoutputlocation)}
+ProfSportsstemsearchedtermlist <- unique(wordStem(ProfSportssearchedtermlist)) #lemmatizes the list of terms you want to search for.
+ProfSportsWordFlagmat <- matrix(,ncol=13,nrow=1)
+for (g in 1:length(ProfSportslocations)) {
+      tempdocloc <- ProfSportslocations[g]
+      files <- list.files(path = tempdocloc, pattern = "txt", full.names = TRUE) #creates vector of txt file names.
+
+      for (i in 1:length(files)) {
+        fileName <- read_file(files[i])
+        Encoding(fileName) <- "UTF-8"  #since tokenize_sentences function requires things to be encoded in UTF-8, need to remove some data.
+        fileName <- iconv(fileName, "UTF-8", "UTF-8",sub='')
+        ltoken <- tokenize_words(fileName, lowercase = TRUE, stopwords = NULL, simplify = FALSE)
+        ltoken <- unlist(ltoken)
+        stemltoken <- wordStem(ltoken) #this uses the Snowball library to lemmatize the entire text.
+        textID <- i
+        for (p in 1:length(ProfSportsstemsearchedtermlist)) {
+          ProfSportsstemsearchedterm <- ProfSportsstemsearchedtermlist[p]
+          for (j in 1:length(stemltoken)) {
+              if (ProfSportsstemsearchedterm == paste0(stemltoken[j]," ",stemltoken[j+1])) {
+                if (j <= ProfSportslongconlength) {longtempvec <- ltoken[(1:(j+ProfSportslongconlength))]}
+                if (j > ProfSportslongconlength) {longtempvec <- ltoken[(j-ProfSportslongconlength):(j+ProfSportslongconlength)]}
+                if (j <= ProfSportsshortconlength) {shorttempvec <- ltoken[(1:(j+ProfSportsshortconlength))]}
+                if (j > ProfSportsshortconlength) {shorttempvec <- ltoken[(j-ProfSportsshortconlength):(j+ProfSportsshortconlength)]}
+                if (j <= ProfSportsPOSconlength) {POStempvec <- ltoken[(1:(j+ProfSportsPOSconlength))]}
+                if (j > ProfSportsPOSconlength) {POStempvec <- ltoken[(j-ProfSportsPOSconlength):(j+ProfSportsPOSconlength)]}
+                TempTextName <- gsub(paste0(ProfSportslocations[g],"/"),"",files[i]) #This grabs just the end of the file path.
+                TempTextName <- gsub(".txt","",TempTextName) #This removes the .txt from the end of the name.
+                temprow <- matrix(,ncol=13,nrow=1)
+                colnames(temprow) <- c("Text", "Text_ID", "ProfSportsstemsearchedterm","Lemma","Lemma_Perc","KWIC","Total_Lemma","Date","Category","Short_KWIC","POS_KWIC","Current_Date","Corpus")
+                temprow[1,1] <- TempTextName
+                temprow[1,2] <- textID
+                temprow[1,3] <- ProfSportsstemsearchedterm
+                temprow[1,4] <- j
+                temprow[1,5] <- (j/length(stemltoken))*100
+                temprow[1,6] <- as.character(paste(longtempvec,sep= " ",collapse=" "))
+                temprow[1,7] <- length(stemltoken)
+                temprow[1,8] <- strsplit(TempTextName,"_")[[1]][1]
+                temprow[1,10] <- as.character(paste(shorttempvec,sep= " ",collapse=" "))
+                temprow[1,11] <- as.character(paste(POStempvec,sep= " ",collapse=" "))
+                temprow[1,12] <- format(Sys.time(), "%Y-%m-%d")
+                temprow[1,13] <- ProfSportsIndex[g]
+                ProfSportsWordFlagmat <- rbind(ProfSportsWordFlagmat,temprow)
+              }
+          }
+        }
+        print(paste0(i," out of ",length(files)," in corpus ",g," out of ",length(ProfSportslocations))) #let's user watch as code runs for long searches
+      }
+}
+      ProfSportsWordFlagmat <- ProfSportsWordFlagmat[-1,]
+      ProfSportsWordFlagdf <- as.data.frame(ProfSportsWordFlagmat)
+      write.table(ProfSportsWordFlagdf, ProfSportsWordFlagdfPath)
+ProfSportsWordFlagdf
+```
+
+Or to upload the previous dataset, run this script.
+```{r ProsSportsBallsWordFlagdf Upload, eval=FALSE}
+ProfSportsWordFlagdf <- read.table(ProfSportsWordFlagdfPath)
+```
+
+**The end result is somewhat disappointing. There are only twelve references to these phrases in all of the professional science corpus I've assembled. So I cannot draw any conclusions from this.**
