@@ -18,15 +18,14 @@ knitr::opts_chunk$set(echo = TRUE)
 This script combines my Word Flagging and KWIC (tokenizer script) methods in order to create an interactive illustration of the frequency with which the terms "play", "player", "recreation", "work", "worker", and "labor" were referenced in *Nature*. The goal is to determine the context for work and play rhetoric in that publication.
 
 ```{r Nature Parameters,  eval=FALSE}
-    Naturelocation <- paste0(getwd(),"/Applications/Victorian-Professional-Science-Writing/Nature")
-    Naturedoclocation <- paste0(Naturelocation,"/Documents")
+    Naturedoclocation <- paste0(getwd(),"/Documents/Nature/Volumes")
     Naturelongconlength <- 250
     Natureshortconlength <- 3
     NaturePOSconlength <- 10
     Natureplaysearchedtermlist <- c("play", "player", "recreation")
     Natureworksearchedtermlist <- c("work", "worker","labor")
     Naturesearchedtermlist <- c(Natureplaysearchedtermlist,Natureworksearchedtermlist)
-    Natureoutputlocation <- Naturelocation
+    Natureoutputlocation <- paste0(getwd(),"/WordFlagDataFrames")
     NatureWordFlagdfPath <- paste0(Natureoutputlocation,"/","NatureWordFlagdf.txt")
     NatureDocumentSize <- 400296165
 ```
