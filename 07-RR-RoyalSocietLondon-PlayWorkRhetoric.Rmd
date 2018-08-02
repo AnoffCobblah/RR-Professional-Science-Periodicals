@@ -14,7 +14,6 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ##### "play", "player", "recreation", "work", "worker", and "labor" in *Proceedings at the Royal Society of London* 
-
 This script combines my Word Flagging and KWIC (tokenizer script) methods in order to create an interactive illustration of the frequency with which the terms "play", "player", "recreation", "work", "worker", and "labor" were referenced in the *Proceedings of the Royal Society of London*, and its earlier titles *Abstracts of the Papers Printed in the Philosophical Transactions* and *Abstracts of the Papers Communicated to the Royal Society of London*. The goal is to determine the context for work and play rhetoric in that publication.
 
 ```{r RoySocLon Parameters,  eval=FALSE}
@@ -112,13 +111,13 @@ RoySocLonWordFlagdf
 ```
 
 
-We can then add up the values in RoySocLonWordFlagdf to make a table of the frequency of play and work rhetoric, RoySocLonFreqmat. It's important to do it this way because it allows us to choose a random KWIC.
+We can then add up the values in RoySocLonWordFlagdf to make a table of the frequency of play and work rhetoric, RoySocLonFreqmat. It's important to do it this way because it allows us to choose a random KWIC, so we can get a sense of the context.
 
 ```{r RoySocLonFreqmat,  eval=FALSE}
   # Adding values from RoySocLonWordFlagdf together to get a matrix of normalized frequencies for each category, as RoySocLonFreqmat
   RoySocLonWordFlagPlaydf <- RoySocLonWordFlagdf[grep("Play-Rhetoric",RoySocLonWordFlagdf$Category),]
       RoySocLonWordFlagWorkdf <- RoySocLonWordFlagdf[grep("Work-Rhetoric",RoySocLonWordFlagdf$Category),]
-      RoySocLonFreqmat <- matrix(,ncol=9,nrow=1)
+      RoySocLonFreqmat <- matrix(,ncol=10,nrow=1)
       files <- list.files(path = RoySocLondoclocation, pattern = "txt", full.names = TRUE)
       for (i in 1:length(files)) {
         TempTextName <- gsub(paste0(RoySocLondoclocation,"/"),"",files[i]) #This grabs just the end of the file path.
@@ -127,11 +126,11 @@ We can then add up the values in RoySocLonWordFlagdf to make a table of the freq
         tempworkdf <- RoySocLonWordFlagWorkdf[grep(TempTextName,RoySocLonWordFlagWorkdf$Text),]
         TempDate <- strsplit(TempTextName,"_")[[1]][1]
         TempLength <- tempplaydf$Total_Lemma[1]
-        temprows <- matrix(,ncol=9,nrow=2)
-        colnames(temprows) <- c("Text", "Text_ID","Date","Category","Frequency","Total_Lemma","Normalized_Freq","Sample_KWIC","Avg_Lemma_Perc")
+        temprows <- matrix(,ncol=10,nrow=2)
+        colnames(temprows) <- c("Text", "Text_ID","Start_Date","Category","Frequency","Total_Lemma","Normalized_Freq","Sample_KWIC","Avg_Lemma_Perc","End_Date")
         temprows[1:2,1] <- as.character(TempTextName)
         temprows[1:2,2] <- i
-        temprows[1:2,3] <- as.character(TempDate)
+        temprows[1:2,3] <- as.character(strsplit(TempDate,"-")[[1]][1])
         temprows[1,4] <- "Play-Rhetoric"
         temprows[2,4] <- "Work-Rhetoric"
         temprows[1,5] <- nrow(tempplaydf)
@@ -145,6 +144,7 @@ We can then add up the values in RoySocLonWordFlagdf to make a table of the freq
           if(nrow(tempworkdf) >0) {temprows[2,8] <- as.character(sample(tempworkdf$Short_KWIC,1))}else{temprows[2,8] <- NA}
         temprows[1,9] <- mean(as.numeric(as.character(tempplaydf$Lemma_Perc)))
         temprows[2,9] <- mean(as.numeric(as.character(tempworkdf$Lemma_Perc)))
+        temprows[1:2,10] <- as.character(strsplit(TempDate,"-")[[1]][2])
         RoySocLonFreqmat <- rbind(RoySocLonFreqmat,temprows)
       }
       RoySocLonFreqmat <- RoySocLonFreqmat[-1,]
@@ -156,11 +156,21 @@ With the data in hand, we can now ask some questions about our corpus, such as: 
 
 ```{r RoySocLonWordFreqmat Visual,  eval=FALSE}
 # Visualizing RoySocLonFreqdf BY DATE
-      p <- ggplot(RoySocLonFreqdf, aes(y = as.numeric(as.character(Normalized_Freq)), x = as.numeric(substr(Date,1,4)), color = Category, label = Sample_KWIC))
+      p <- ggplot(RoySocLonFreqdf, aes(y = as.numeric(as.character(Normalized_Freq)), x =                         as.numeric(substr(Start_Date,1,4)), color = Category, label = Sample_KWIC))
       pg <- geom_point(size=1,pch = 16)
       pl <- p + pg + labs(x = "Date", y = "Normalized Frequency (% of Words in Text)", title = "Appearances of Play and Work Rhetoric within Proceedings \nof the Royal Society")
       ggplotly(pl)
 ```
+
+While this is helpful, we also want a visualization that reminds us that rather than being points, each of these volumes actually covers a range of dates. We can visualize this by using the geom_errorbarh function.
+
+```{r RoySocLonWordFreqmat VisualBar,  eval=FALSE}
+    p <- ggplot()      
+pg <- geom_errorbarh(data=RoySocLonFreqdf, aes(y = as.numeric(as.character(Normalized_Freq)), x =                         as.numeric(substr(Start_Date,1,4)),xmin=as.numeric(substr(Start_Date,1,4)),xmax=as.numeric(substr(End_Date,1,4)), color = Category, size=1))
+      pl <- p + pg + labs(x = "Date", y = "Normalized Frequency (% of Words in Text)", title = "Appearances of Play and Work Rhetoric within Proceedings \nof the Royal Society") + guides(size=FALSE)
+    pl
+```
+
 
 
 We can also visualize the terms which most frequently occur around the search terms in the two categories within this corpus. Again, work frequently appears near science and scientific.
