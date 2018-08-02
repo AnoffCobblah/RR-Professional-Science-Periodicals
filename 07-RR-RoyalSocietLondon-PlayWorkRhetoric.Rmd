@@ -13,20 +13,20 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-##### **PROVISIONAL** "play", "player", "recreation", "work", "worker", and "labor" in *Proceedings at the Royal Society of London* (cORPUS DATA STILL NEEDS CLEANING. DIGITIZATION INFO BIASING RESULTS.)
+##### "play", "player", "recreation", "work", "worker", and "labor" in *Proceedings at the Royal Society of London* 
 
 This script combines my Word Flagging and KWIC (tokenizer script) methods in order to create an interactive illustration of the frequency with which the terms "play", "player", "recreation", "work", "worker", and "labor" were referenced in the *Proceedings of the Royal Society of London*, and its earlier titles *Abstracts of the Papers Printed in the Philosophical Transactions* and *Abstracts of the Papers Communicated to the Royal Society of London*. The goal is to determine the context for work and play rhetoric in that publication.
 
 ```{r RoySocLon Parameters,  eval=FALSE}
-    RoySocLonlocation <- paste0(getwd(),"/Applications/Victorian-Professional-Science-Writing/RSL")
-    RoySocLondoclocation <- paste0(RoySocLonlocation,"/Documents")
+    RoySocLonlocation <- paste0(getwd(),"/Documents/RSL")
+    RoySocLondoclocation <- paste0(RoySocLonlocation,"/Proceedings")
     RoySocLonlongconlength <- 250
     RoySocLonshortconlength <- 3
     RoySocLonPOSconlength <- 10
     RoySocLonplaysearchedtermlist <- c("play", "player", "recreation")
     RoySocLonworksearchedtermlist <- c("work", "worker","labor")
     RoySocLonsearchedtermlist <- c(RoySocLonplaysearchedtermlist,RoySocLonworksearchedtermlist)
-    RoySocLonoutputlocation <- RoySocLonlocation
+    RoySocLonoutputlocation <- paste0(getwd(),"/WordFlagDataFrames")
     RoySocLonWordFlagdfPath <- paste0(RoySocLonoutputlocation,"/","RoySocLonWordFlagdf.txt")
     RoySocLonDocumentSize <- 133327151
 ```
