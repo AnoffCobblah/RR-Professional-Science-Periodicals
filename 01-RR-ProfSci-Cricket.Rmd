@@ -21,18 +21,18 @@ This is part of a project to investigate the context for the sport of "cricket" 
 **NOTE: I initially considered adding "racing", but this was identical to "race" which created several false matches.)**
 
 ```{r ProfSportsBalls Parameters,  eval=FALSE}
-    templocation <- paste0(getwd(),"/Applications/Victorian-Professional-Science-Writing")
-    ProfSportslocations <- c(paste0(templocation,"/Nature/Documents"),paste0(templocation,"/Philosophical-Magazine/Documents"),paste0(templocation,"/Reports-of-the-BAAS/Documents"),paste0(templocation,"/Royal-Institution/Documents"),paste0(templocation,"/Royal-Society-of-Edinburgh/Documents"), paste0(templocation,"/RSL/Documents"))
+    templocation <- paste0(getwd(),"/Documents")
+    ProfSportslocations <- c(paste0(templocation,"/Nature/Volumes"),paste0(templocation,"/Philosophical-Magazine/Volumes"),paste0(templocation,"/Reports-of-the-BAAS/Reports"),paste0(templocation,"/Royal-Institution/Proceedings"),paste0(templocation,"/Royal-Society-of-Edinburgh/Proceedings"), paste0(templocation,"/RSL/Proceedings"))
     ProfSportsIndex <- c("Nature","Philosophical-Magazine","BAAS","Royal-Institution","RSE","RSL")
     ProfSportslongconlength <- 250
     ProfSportsshortconlength <- 3
     ProfSportsPOSconlength <- 10
     ProfSportssearchedtermlist <- c("cricket ball","cricket bat", "golf ball","golf club", "tennis ball","tennis racket")
-    ProfSportsoutputlocation <- templocation
+    ProfSportsoutputlocation <- paste0(getwd(),"/WordFlagDataFrames")
     ProfSportsWordFlagdfPath <- paste0(ProfSportsoutputlocation,"/","ProfSportsWordFlagdf.txt")
 ```
 
-To create the data frame compiling every reference to a term, run the following script. Be aware that this takes quite a while.
+To create the data frame compiling every reference to a term, run the following script. Be aware that this takes quite a while. **So if you already have a dataset that you just need to upload, see below instead.**
 
 ```{r ProfSportsBallsApp Word Flag,  eval=FALSE}
 if(file.exists(ProfSportsoutputlocation) == FALSE){dir.create(ProfSportsoutputlocation)}
@@ -89,9 +89,10 @@ for (g in 1:length(ProfSportslocations)) {
 ProfSportsWordFlagdf
 ```
 
-Or to upload the previous dataset, run this script.
+To upload the previously created dataset, run this script.
 ```{r ProsSportsBallsWordFlagdf Upload, eval=FALSE}
 ProfSportsWordFlagdf <- read.table(ProfSportsWordFlagdfPath)
+ProfSportsWordFlagdf
 ```
 
 **The end result is somewhat disappointing. There are only twelve references to these phrases in all of the professional science corpus I've assembled. So I cannot draw any conclusions from this.**
