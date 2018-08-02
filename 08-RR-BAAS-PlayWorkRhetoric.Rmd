@@ -22,15 +22,15 @@ First, we set our parameters. There are several new things to take into account.
 **It's also important to note that since the creation of the KWIC script takes a long time, I've included a logical switch to make sure it will only create a new dataset if the "raw" data is changed. That is, my txt versions of the *Reports* up to 1900 take up 210370764 bytes. So the script is set not to run unless it senses a change in the number of bytes, or if the last created dataset is missing.**
 
 ```{r DecBAASApp Parameters, eval=FALSE}
-    BAASlocation <- paste0(getwd(),"/Applications/Victorian-Professional-Science-Writing/Reports-of-the-BAAS")
-    BAASdoclocation <- paste0(BAASlocation,"/Documents")
+    BAASlocation <- paste0(getwd(),"/Documents/Reports-of-the-BAAS")
+    BAASdoclocation <- paste0(BAASlocation,"/Reports")
     BAASlongconlength <- 250
     BAASshortconlength <- 3
     BAASPOSconlength <- 10
     BAASplaysearchedtermlist <- c("play", "player", "recreation")
     BAASworksearchedtermlist <- c("work", "worker","labor")
     BAASsearchedtermlist <- c(BAASplaysearchedtermlist,BAASworksearchedtermlist)
-    BAASoutputlocation <- BAASlocation
+    BAASoutputlocation <- paste0(getwd(),"/WordFlagDataFrames")
     BAASWordFlagdfPath <- paste0(BAASoutputlocation,"/","BAASWordFlagdf.txt")
     BAASDocumentSize <- 210370764
 ```
@@ -212,7 +212,6 @@ But as Tufte points out, time-series graphics are not good indicators of cause. 
       pg <- geom_point(size=1,pch = 16)
       pl <- p + pg + labs(x = "Normalized Frequency of 'Play,' 'Player,' \nand 'Recreation' (% of Words in Volume)", y = "Normalized Frequency of 'Work,' 'Worker,' \nand 'Labor' (% of Words in Volume)", title = "Appearances of Play and Work Rhetoric within Reports of the BAAS")
       pl
-      ggsave(file=paste0(getwd(),"/Applications/Victorian-Professional-Science-Writing/Reports-of-the-BAAS/Relationship.pdf"), device=pdf)
 ```
 
 We can also visualize the terms which most frequently occur around the search terms in the two categories within this corpus.
