@@ -18,15 +18,15 @@ knitr::opts_chunk$set(echo = TRUE)
 This script combines my Word Flagging and KWIC (tokenizer script) methods in order to create an interactive illustration of the frequency with which the terms "play", "player", "recreation", "work", "worker", and "labor" were referenced in the *Philosophical Magazine*. The goal is to determine the context for work and play rhetoric in that publication.
 
 ```{r PhilMag Parameters,  eval=FALSE}
-    PhilMaglocation <- paste0(getwd(),"/Applications/Victorian-Professional-Science-Writing/Philosophical-Magazine")
-    PhilMagdoclocation <- paste0(PhilMaglocation,"/Documents")
+    PhilMaglocation <- paste0(getwd(),"/Documents/Philosophical-Magazine")
+    PhilMagdoclocation <- paste0(PhilMaglocation,"/Volumes")
     PhilMaglongconlength <- 250
     PhilMagshortconlength <- 3
     PhilMagPOSconlength <- 10
     PhilMagplaysearchedtermlist <- c("play", "player", "recreation")
     PhilMagworksearchedtermlist <- c("work", "worker","labor")
     PhilMagsearchedtermlist <- c(PhilMagplaysearchedtermlist,PhilMagworksearchedtermlist)
-    PhilMagoutputlocation <- PhilMaglocation
+    PhilMagoutputlocation <- paste0(getwd(),"/WordFlagDataFrames")
     PhilMagWordFlagdfPath <- paste0(PhilMagoutputlocation,"/","PhilMagWordFlagdf.txt")
     PhilMagDocumentSize <- 492677179
 ```
@@ -125,7 +125,7 @@ We can then add up the values in PhilMagWordFlagdf to make a table of the freque
         TempTextName <- gsub(".txt","",TempTextName) #This removes the .txt from the end of the name.
         tempplaydf <- PhilMagWordFlagPlaydf[grep(TempTextName,PhilMagWordFlagPlaydf$Text),]
         tempworkdf <- PhilMagWordFlagWorkdf[grep(TempTextName,PhilMagWordFlagWorkdf$Text),]
-        TempDate <- strsplit(TempTextName,"_")[[1]][2]
+        TempDate <- strsplit(TempTextName,"_")[[1]][1]
         TempLength <- tempplaydf$Total_Lemma[1]
         temprows <- matrix(,ncol=9,nrow=2)
         colnames(temprows) <- c("Text", "Text_ID","Date","Category","Frequency","Total_Lemma","Normalized_Freq","Sample_KWIC","Avg_Lemma_Perc")
