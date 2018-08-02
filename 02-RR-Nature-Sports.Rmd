@@ -18,18 +18,19 @@ knitr::opts_chunk$set(echo = TRUE)
 In a previous experiment, I attempted to see whether within the discourse of Victorian science, "cricket" was associated with nation. I could not find a way to do this successfully. In this section, I attempt to see if other sports were associated with nation/empire. Maybe I can draw an analogy to cricket this way.
 
 ```{r ProfSports Parameters,  eval=FALSE}
-    templocation <- paste0(getwd(),"/Applications/Victorian-Professional-Science-Writing")
-    ProfSportslocations2 <- c(paste0(templocation,"/Nature/Documents"),paste0(templocation,"/Philosophical-Magazine/Documents"),paste0(templocation,"/Reports-of-the-BAAS/Documents"),paste0(templocation,"/Royal-Institution/Documents"),paste0(templocation,"/Royal-Society-of-Edinburgh/Documents"), paste0(templocation,"/RSL/Documents"))
+    templocation <- paste0(getwd(),"/Documents")
+    ProfSportslocations2 <- c(paste0(templocation,"/Nature/Volumes"),paste0(templocation,"/Philosophical-Magazine/Volumes"),paste0(templocation,"/Reports-of-the-BAAS/Reports"),paste0(templocation,"/Royal-Institution/Proceedings"),paste0(templocation,"/Royal-Society-of-Edinburgh/Proceedings"), paste0(templocation,"/RSL/Proceedings"))
     ProfSportsIndex2 <- c("Nature","Philosophical-Magazine","BAAS","Royal-Institution","RSE","RSL")
     ProfSportslongconlength2 <- 250
     ProfSportsshortconlength2 <- 3
     ProfSportsPOSconlength2 <- 10
     ProfSportssearchedtermlist2 <- c("golf","tennis","football","shuttlecock")
-    ProfSportsoutputlocation2 <- templocation
-    ProfSportsWordFlagdfPath2 <- paste0(ProfSportsoutputlocation2,"/","ProfSportsWordFlagdf.txt")
+    ProfSportsoutputlocation2 <- paste0(getwd(),"/WordFlagDataFrames")
+    ProfSportsWordFlagdfPath2 <- paste0(ProfSportsoutputlocation2,"/","ProfSportsWordFlagdf2.txt")
 ```
 
-To create the data frame compiling every reference to a term, run the following script. Be aware that this takes quite a while.
+To create the data frame compiling every reference to a term, run the following script. Be aware that this takes quite a while. **So if you already have a dataset that you just need to upload, see below instead.**
+
 
 ```{r ProfSportsApp Word Flag,  eval=FALSE}
 if(file.exists(ProfSportsoutputlocation2) == FALSE){dir.create(ProfSportsoutputlocation2)}
@@ -92,9 +93,9 @@ ProfSportsWordFlagdf2 <- read.table(ProfSportsWordFlagdfPath2)
 ProfSportsWordFlagdf2
 ```
 
-This time we get 341 flags, a much more substantial numberr.
+This time we get 341 flags, a much more substantial number.
 
-With the data in hand, we can now ask some questions about our corpus, such as: Do references to these sports in Victorian Professional Science Publications increase over the course of the century? Yes, almost all sports are mentioned more frequently at the end of the century, although shuttlecock takes a dip.
+With the data in hand, we can now ask some questions about our corpus, such as: Do references to these sports in Victorian Professional Science Publications increase over the course of the century? Yes, almost all sports are mentioned more frequently at the end of the century, although shuttlecock takes a dip. 
 
 ```{r ProfSportsFreqmat Visual,  eval=FALSE}
 # Visualizing ProfSportsFreqdf BY DATE
