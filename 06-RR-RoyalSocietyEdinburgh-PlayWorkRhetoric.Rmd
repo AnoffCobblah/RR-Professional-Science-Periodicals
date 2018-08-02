@@ -19,17 +19,17 @@ knitr::opts_chunk$set(echo = TRUE)
 This script combines my Word Flagging and KWIC (tokenizer script) methods in order to create an interactive illustration of the frequency with which the terms "play", "player", "recreation", "work", "worker", and "labor" were referenced in *Proceedings of the Royal Society of Edinburgh*. The goal is to determine the context for work and play rhetoric in that publication.
 
 ```{r ProcRSE Parameters,  eval=FALSE}
-    ProcRSElocation <- paste0(getwd(),"/Applications/Victorian-Professional-Science-Writing/Royal-Society-of-Edinburgh")
-    ProcRSEdoclocation <- paste0(ProcRSElocation,"/Documents")
+    ProcRSElocation <- paste0(getwd(),"/Documents/Royal-Society-of-Edinburgh")
+    ProcRSEdoclocation <- paste0(ProcRSElocation,"/Proceedings")
     ProcRSElongconlength <- 250
     ProcRSEshortconlength <- 3
     ProcRSEPOSconlength <- 10
     ProcRSEplaysearchedtermlist <- c("play", "player", "recreation")
     ProcRSEworksearchedtermlist <- c("work", "worker","labor")
     ProcRSEsearchedtermlist <- c(ProcRSEplaysearchedtermlist,ProcRSEworksearchedtermlist)
-    ProcRSEoutputlocation <- ProcRSElocation
+    ProcRSEoutputlocation <- paste0(getwd(),"/WordFlagDataFrames")
     ProcRSEWordFlagdfPath <- paste0(ProcRSEoutputlocation,"/","ProcRSEWordFlagdf.txt")
-    ProcRSEDocumentSize <- 0
+    ProcRSEDocumentSize <- 37796836
 ```
 
 **IMPORTANT NOTE: Since creating a Word Flag matrix can take a nontrivial amount of time for larger corpuses, this script is designed only to run the program to create a new ProcRSEWordFlagdf if there is a change to the dataset in folder "Documents" or if the previous ProcRSEWordFlagdf has been deleted.**
