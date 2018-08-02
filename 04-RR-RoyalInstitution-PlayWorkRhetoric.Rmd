@@ -19,15 +19,15 @@ knitr::opts_chunk$set(echo = TRUE)
 This script combines my Word Flagging and KWIC (tokenizer script) methods in order to create an interactive illustration of the frequency with which the terms "play", "player", "recreation", "work", "worker", and "labor" were referenced in *Notices of the Proceedings at the Meetings of the Members of the Royal Institution*. The goal is to determine the context for work and play rhetoric in that publication.
 
 ```{r RoyInst Parameters,  eval=FALSE}
-    RoyInstlocation <- paste0(getwd(),"/Applications/Victorian-Professional-Science-Writing/Royal-Institution")
-    RoyInstdoclocation <- paste0(RoyInstlocation,"/Documents")
+    RoyInstlocation <- paste0(getwd(),"/Documents/Royal-Institution")
+    RoyInstdoclocation <- paste0(RoyInstlocation,"/Proceedings")
     RoyInstlongconlength <- 250
     RoyInstshortconlength <- 3
     RoyInstPOSconlength <- 10
     RoyInstplaysearchedtermlist <- c("play", "player", "recreation")
     RoyInstworksearchedtermlist <- c("work", "worker","labor")
     RoyInstsearchedtermlist <- c(RoyInstplaysearchedtermlist,RoyInstworksearchedtermlist)
-    RoyInstoutputlocation <- RoyInstlocation
+    RoyInstoutputlocation <- paste0(getwd(),"/WordFlagDataFrames")
     RoyInstWordFlagdfPath <- paste0(RoyInstoutputlocation,"/","RoyInstWordFlagdf.txt")
     RoyInstDocumentSize <- 31964986
 ```
